@@ -25,8 +25,6 @@ function draw_triangle(canvas)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-    /*================ Shaders ====================*/
-
     let vertex_code =
     `
         attribute vec3 coordinates;
@@ -60,12 +58,8 @@ function draw_triangle(canvas)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer);
 
     let coord_idx = gl.getAttribLocation(program, "coordinates");
-
-    // Point an attribute to the currently bound VBO
-    // index, size, type, normalized, stride, offset
     gl.vertexAttribPointer(coord_idx, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(coord_idx);
-
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9);
     gl.enable(gl.DEPTH_TEST);
