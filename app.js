@@ -1,5 +1,13 @@
-function draw_triangle(gl, canvas)
+// WebGL2 example code
+function draw_triangle(canvas)
 {
+    const gl = canvas.getContext('webgl2');
+
+    if (gl === null) {
+        alert('Unable to initialize WebGL2. Your browser or machine may not support it.');
+        return;
+    }
+
     let vertices = [
         -0.5,0.5,0.0,
         -0.5,-0.5,0.0,
@@ -67,55 +75,74 @@ function draw_triangle(gl, canvas)
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 }
 
-function wrap_function(p, fn)
-{
-    const original = p[fn];
-    p[fn] = function(...args) {
-        console.log(fn, args);
-        return original.call(this, ...args);
-    };
-}
-
-function wrap_prototype(p, fn)
-{
-    wrap_function(p.prototype, fn);
-}
-
-function setup_handler()
+// Put a wrapper on every WebGL2 method
+function setup_handler(command_list)
 {
     let descriptors = Object.getOwnPropertyDescriptors(WebGL2RenderingContext.prototype);
-
-    // console.log(properties);
-    // console.log(descriptors);
 
     for (let property_name in descriptors)
     {
         if (descriptors[property_name]['get'] == undefined)
         {
             let property = WebGL2RenderingContext.prototype[property_name];
-            // console.log(property_name, property);
             if (typeof property == 'function')
             {
-                wrap_prototype(WebGL2RenderingContext, property_name);
+                const original_function = WebGL2RenderingContext.prototype[property_name];
+
+                const wrapper = function(...args) {
+                    const return_value = original_function.call(this, ...args) || null;
+                    command_list.add(original_function, return_value, ...args);
+                    return return_value;
+                };
+
+                WebGL2RenderingContext.prototype[property_name] = wrapper;
             }
         }
     }
 }
 
+// Contains every calls made to a WebGL2 context
+class CommandList
+{
+    commands = new Array();
+
+    add(fn, return_value, ...args)
+    {
+        this.commands.push({original_function: fn, return_value, arguments: [...args]});
+        console.log(this.commands[this.commands.length-1]);
+    }
+}
+
+// Replay the calls from a command list
+function replay_commands(command_list, gl, canvas)
+{
+    return;
+
+    for (const command of command_list.commands)
+    {
+        command.original_function(...command.arguments);
+    }
+}
+
 function main()
 {
-    const canvas = document.querySelector('#gl_canvas');
+    const client_canvas = document.querySelector('#client_canvas');
+    const webdoc_canvas = document.querySelector('#webdoc_canvas');
 
-    // Initialize the GL context
-    const gl = canvas.getContext('webgl2');
-
-    // Only continue if WebGL is available and working
-    if (gl === null) {
+    const webdoc_gl = webdoc_canvas.getContext('webgl2');
+    if (webdoc_gl === null) {
         alert('Unable to initialize WebGL2. Your browser or machine may not support it.');
         return;
     }
-    setup_handler();
-    draw_triangle(gl, canvas);
+
+    command_list = new CommandList();
+    setup_handler(command_list);
+
+    draw_triangle(client_canvas);
+
+    replay_commands(command_list, webdoc_gl, webdoc_canvas);
+
+    bob = 0;
 }
 
 window.onload = main;
