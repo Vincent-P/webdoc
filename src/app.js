@@ -1,3 +1,6 @@
+import React, { Component } from "react";
+import ReactDOM from "react-dom";
+
 // WebGL2 example code
 function draw_triangle(canvas)
 {
@@ -14,16 +17,7 @@ function draw_triangle(canvas)
         0.5,-0.5,0.0,
     ];
 
-    let vertex_buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
     let indices = [0,1,2];
-    let index_Buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
     let vertex_code =
     `
@@ -34,9 +28,6 @@ function draw_triangle(canvas)
         }
     `;
 
-    let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertex_shader, vertex_code);
-    gl.compileShader(vertex_shader);
 
     let fragment_code =
     `
@@ -44,6 +35,20 @@ function draw_triangle(canvas)
             gl_FragColor = vec4(gl_FragCoord.rgb, 0.1);
         }
     `;
+
+    let vertex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    let index_Buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader, vertex_code);
+    gl.compileShader(vertex_shader);
 
     let fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fragment_shader, fragment_code);
@@ -146,14 +151,24 @@ function main()
         return;
     }
 
-    command_list = new CommandList();
+    let command_list = new CommandList();
     setup_handler(command_list);
 
     draw_triangle(client_canvas);
 
     replay_commands(command_list, webdoc_gl, webdoc_canvas);
 
-    bob = 0;
+    let bob = 0;
+
+    const Hello = ({}) => (
+        <p>Hello from React!</p>
+    );
+
+    const react_root = document.getElementById('webdoc_react_root');
+    if (react_root)
+    {
+        ReactDOM.render(<Hello />, react_root);
+    }
 }
 
 window.onload = main;
