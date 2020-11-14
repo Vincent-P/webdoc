@@ -103,7 +103,7 @@ class CommandList
 
     add(fn, return_value, ...args)
     {
-        this.commands.push({original_function: fn, return_value, arguments: [...args]});
+        this.commands.push({original_function: fn, return_value, args: [...args]});
         console.log(this.commands[this.commands.length-1]);
     }
 }
@@ -116,18 +116,18 @@ function replay_commands(command_list, gl, canvas)
     for (const command of command_list.commands)
     {
         const original_returned_value = command.return_value;
-        let arguments = [...command.arguments];
+        let args = [...command.args];
 
         // replace variables
-        for (let i_argument in arguments)
+        for (let i_argument in args)
         {
-            if (variables.has(arguments[i_argument]))
+            if (variables.has(args[i_argument]))
             {
-                arguments[i_argument] = variables.get(arguments[i_argument]);
+                args[i_argument] = variables.get(args[i_argument]);
             }
         }
 
-        let returned_value = command.original_function.bind(gl)(...arguments);
+        let returned_value = command.original_function.bind(gl)(...args);
         if (returned_value)
         {
             variables.set(original_returned_value, returned_value);
