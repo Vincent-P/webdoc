@@ -1,16 +1,9 @@
-import React, { Component } from "react";
+import React, { useState } from "react";
 import ReactDOM from "react-dom";
 
 // WebGL2 example code
-function draw_triangle(canvas)
+function draw_triangle(gl, canvas)
 {
-    const gl = canvas.getContext('webgl2');
-
-    if (gl === null) {
-        alert('Unable to initialize WebGL2. Your browser or machine may not support it.');
-        return;
-    }
-
     let vertices = [
         -0.5,0.5,0.0,
         -0.5,-0.5,0.0,
@@ -75,32 +68,6 @@ function draw_triangle(canvas)
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 }
 
-// Put a wrapper on every WebGL2 method
-function setup_handler(command_list)
-{
-    let descriptors = Object.getOwnPropertyDescriptors(WebGL2RenderingContext.prototype);
-
-    for (let property_name in descriptors)
-    {
-        if (descriptors[property_name]['get'] == undefined)
-        {
-            let property = WebGL2RenderingContext.prototype[property_name];
-            if (typeof property == 'function')
-            {
-                const original_function = WebGL2RenderingContext.prototype[property_name];
-
-                const wrapper = function(...args) {
-                    const return_value = original_function.call(this, ...args) || null;
-                    command_list.add(original_function, return_value, ...args);
-                    return return_value;
-                };
-
-                WebGL2RenderingContext.prototype[property_name] = wrapper;
-            }
-        }
-    }
-}
-
 // Contains every calls made to a WebGL2 context
 class CommandList
 {
@@ -109,17 +76,50 @@ class CommandList
     add(fn, return_value, ...args)
     {
         this.commands.push({original_function: fn, return_value, args: [...args]});
-        console.log(this.commands[this.commands.length-1]);
+        // console.log(this.commands[this.commands.length-1]);
+    }
+}
+
+// Put a wrapper on every WebGL2 method
+function setup_handler(gl, command_list)
+{
+    for (let property_name in gl)
+    {
+        let property = gl[property_name];
+        if (typeof property == 'function')
+        {
+            const original_function = gl[property_name];
+
+            const wrapper = function(...args) {
+                const return_value = original_function.call(this, ...args) || null;
+                command_list.add(original_function, return_value, ...args);
+                return return_value;
+            };
+
+            gl[property_name] = wrapper;
+        }
     }
 }
 
 // Replay the calls from a command list
-function replay_commands(command_list, gl, canvas)
+function replay_commands(command_list, gl, canvas, limit=null)
 {
     let variables = new Map();
 
-    for (const command of command_list.commands)
+    console.log(`Replaying commands up to command #${limit}`);
+
+    // clear framebuffer before replaying commands
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    for (const i_command in command_list.commands)
     {
+        if (limit != null && i_command > limit)
+        {
+            break;
+        }
+
+        const command = command_list.commands[i_command];
         const original_returned_value = command.return_value;
         let args = [...command.args];
 
@@ -146,28 +146,48 @@ function main()
     const webdoc_canvas = document.querySelector('#webdoc_canvas');
 
     const webdoc_gl = webdoc_canvas.getContext('webgl2');
-    if (webdoc_gl === null) {
+    const client_gl = client_canvas.getContext('webgl2');
+    if (client_gl == null || webdoc_gl == null) {
         alert('Unable to initialize WebGL2. Your browser or machine may not support it.');
         return;
     }
 
     let command_list = new CommandList();
-    setup_handler(command_list);
+    setup_handler(client_gl, command_list);
+    draw_triangle(client_gl, client_canvas);
 
-    draw_triangle(client_canvas);
 
-    replay_commands(command_list, webdoc_gl, webdoc_canvas);
-
-    let bob = 0;
-
-    const Hello = ({}) => (
-        <p>Hello from React!</p>
+    const CommandComponent = ({command}) => (
+        <div>{command.original_function.name}({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})</div>
     );
+
+    const CommandListComponent = ({commands}) => {
+        const [selected, set_selected] = useState(null);
+        const update = index => {
+            set_selected(index);
+            replay_commands(command_list, webdoc_gl, webdoc_canvas, index);
+        };
+
+        return (<div>
+                    <h3>Command List</h3>
+                    <ol>
+                        {commands.map((command, index) => (
+                            <li
+                                key={index}
+                                onClick={_ => update(index)}
+                                className={index == selected ? "selected" : ""}
+                            >
+                                <CommandComponent command={command}/>
+                            </li>
+                        ))}
+                    </ol>
+                </div>)
+    };
 
     const react_root = document.getElementById('webdoc_react_root');
     if (react_root)
     {
-        ReactDOM.render(<Hello />, react_root);
+        ReactDOM.render(<CommandListComponent commands={command_list.commands} />, react_root);
     }
 }
 
