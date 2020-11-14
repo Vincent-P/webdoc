@@ -33,6 +33,7 @@ function draw_triangle(canvas)
             gl_Position = vec4(coordinates, 1.0);
         }
     `;
+
     let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertex_shader, vertex_code);
     gl.compileShader(vertex_shader);
@@ -110,11 +111,27 @@ class CommandList
 // Replay the calls from a command list
 function replay_commands(command_list, gl, canvas)
 {
-    return;
+    let variables = new Map();
 
     for (const command of command_list.commands)
     {
-        command.original_function(...command.arguments);
+        const original_returned_value = command.return_value;
+        let arguments = [...command.arguments];
+
+        // replace variables
+        for (let i_argument in arguments)
+        {
+            if (variables.has(arguments[i_argument]))
+            {
+                arguments[i_argument] = variables.get(arguments[i_argument]);
+            }
+        }
+
+        let returned_value = command.original_function.bind(gl)(...arguments);
+        if (returned_value)
+        {
+            variables.set(original_returned_value, returned_value);
+        }
     }
 }
 
