@@ -80,33 +80,10 @@ class CommandList
     }
 }
 
-// Put a wrapper on every WebGL2 method
-function setup_handler(gl, command_list)
-{
-    for (let property_name in gl)
-    {
-        let property = gl[property_name];
-        if (typeof property == 'function')
-        {
-            const original_function = gl[property_name];
-
-            const wrapper = function(...args) {
-                const return_value = original_function.call(this, ...args) || null;
-                command_list.add(original_function, return_value, ...args);
-                return return_value;
-            };
-
-            gl[property_name] = wrapper;
-        }
-    }
-}
-
 // Replay the calls from a command list
 function replay_commands(command_list, gl, canvas, limit=null)
 {
     let variables = new Map();
-
-    console.log(`Replaying commands up to command #${limit}`);
 
     // clear framebuffer before replaying commands
     gl.clearColor(1, 1, 1, 1);
@@ -140,6 +117,49 @@ function replay_commands(command_list, gl, canvas, limit=null)
     }
 }
 
+
+// Put a wrapper on every function of a WebGL context
+function start_capture(gl, command_list)
+{
+    for (let property_name in gl)
+    {
+        let property = gl[property_name];
+        if (typeof property == 'function')
+        {
+            const original_function = gl[property_name];
+
+            const wrapper = function(...args) {
+                const return_value = original_function.call(this, ...args) || null;
+                command_list.add(original_function, return_value, ...args);
+                return return_value;
+            };
+
+            gl[property_name] = wrapper;
+        }
+    }
+}
+
+// Restore the functions of a WebGL context
+function stop_capture(gl)
+{
+    for (let property_name in gl)
+    {
+        let property = gl[property_name];
+        if (typeof property == 'function')
+        {
+            const original_function = gl[property_name];
+
+            const wrapper = function(...args) {
+                const return_value = original_function.call(this, ...args) || null;
+                command_list.add(original_function, return_value, ...args);
+                return return_value;
+            };
+
+            gl[property_name] = Object.getPrototypeOf(gl)[property_name];
+        }
+    }
+}
+
 function main()
 {
     const client_canvas = document.querySelector('#client_canvas');
@@ -153,9 +173,9 @@ function main()
     }
 
     let command_list = new CommandList();
-    setup_handler(client_gl, command_list);
+    start_capture(client_gl, command_list);
     draw_triangle(client_gl, client_canvas);
-
+    stop_capture(client_gl);
 
     const CommandComponent = ({command}) => (
         <div>{command.original_function.name}({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})</div>
