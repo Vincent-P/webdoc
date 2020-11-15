@@ -1,4 +1,8 @@
-.selected
-{
+.selected {
     background-color: red;
+}
+
+canvas {
+  border: 1px solid black;
+  margin: 5px;
 }
