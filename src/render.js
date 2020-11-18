@@ -1,6 +1,8 @@
 import React  from "react";
 import ReactDOM from "react-dom";
 
+import 'bulma/css/bulma.css'
+
 // Replay the calls from a command list
 export function replay_commands(command_list, gl, limit=null)
 {
@@ -38,30 +40,35 @@ export function replay_commands(command_list, gl, limit=null)
     }
 }
 
-// Display a single command (used in the command list)
-const CommandComponent = ({command}) => (
-    <div>
-        {command.original_function.name}({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})
-    </div>
-);
-
 // Display a command list, clicking on a command selects it
+//  ({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})
 const CommandListComponent = ({commands, selected, select_command}) => {
-    return (<div>
-                <h3>Command List</h3>
-                <ol>
-                    {commands.map((command, index) => (
-                        <li
-                            key={index}
-                            onClick={_ => select_command(index)}
-                            className={index == selected ? "selected" : ""}
-                        >
-                            <CommandComponent command={command}/>
-                        </li>
-                    ))}
-                </ol>
-            </div>);
+    return [
+        <h2 className="title is-5">Command list</h2>,
+        <ol className="command-list is-flex-grow-1">
+            {commands.map((command, index) => (
+                <li
+                    key={index}
+                    onClick={_ => select_command(index)}
+                    className={index == selected ? "selected is-size-7 is-family-monospace" : "is-size-7 is-family-monospace"}
+                >
+                    {command.original_function.name}
+                </li>
+            ))}
+        </ol>
+    ];
 };
+
+const CommandArguments = ({command}) => {
+    return [
+        <h2 className="title is-5">Arguments</h2>,
+        <ul>
+            {command.args.map((arg, index) => (
+                <li key={index} className="is-size-7">{`${arg}`}</li>
+            ))}
+        </ul>
+    ];
+}
 
 // Canvas where the commands get replayed
 class CanvasComponent extends React.Component {
@@ -73,10 +80,8 @@ class CanvasComponent extends React.Component {
     }
 
     componentDidMount() {
-        console.log("Creating gl context");
         const canvas = this.canvas_ref.current;
         this.gl_context = canvas.getContext('webgl2', {preserveDrawingBuffer: false});
-        console.log(this.gl_context, canvas);
 
         // re-render once the gl context has been created
         // because componentDidMount() gets called after render()
@@ -95,9 +100,7 @@ class CanvasComponent extends React.Component {
         }
 
         return (
-            <div>
-                <canvas ref={this.canvas_ref} id={this.props.id} width="640" height="480"></canvas>
-            </div>
+            <canvas ref={this.canvas_ref} id={this.props.id} width="640" height="480"></canvas>
         );
     }
 }
@@ -120,7 +123,6 @@ class WebdocComponent extends React.Component {
     }
 
     select_command = (index) => {
-        console.log("select command", index);
         this.setState(state => ({
             selected: index
         }));
@@ -129,20 +131,32 @@ class WebdocComponent extends React.Component {
     render() {
         const {command_list} = this.props;
 
-        return (
-            <div className="fullscreen">
-                <h1>Webdoc</h1>
-
-                <h2>Replay</h2>
-                <CanvasComponent id="webdoc_canvas" command_list={command_list} selected={this.state.selected}/>
-
-                <p><a download="command_list" href={`data:application/json,${JSON.stringify(command_list)}`}>Download</a></p>
-                <CommandListComponent
-                    commands={command_list.commands}
-                    selected={this.state.selected}
-                    select_command={this.select_command}/>
+        return [
+            <header className="level">
+                <div className="level-left">
+                    <div className="level-item">
+                        <h1 className="title is-5">
+                            Webdoc
+                        </h1>
+                    </div>                </div>
+                <div className="level-right">
+                    <p className="level-item"><a download="capture" href={`data:application/json,${JSON.stringify(command_list)}`}>Download capture</a></p>
+                </div>
+            </header>,
+            <div className="columns is-flex-grow-1 m-0">
+                <div className="column">
+                    <CommandListComponent
+                        commands={command_list.commands}
+                        selected={this.state.selected}
+                        select_command={this.select_command}/>
+                    {this.state.selected ? <CommandArguments command={command_list.commands[this.state.selected]} /> : null}
+                </div>
+                <div className="column">
+                    <h2 className="title is-5">Replay</h2>
+                    <CanvasComponent id="webdoc_canvas" command_list={command_list} selected={this.state.selected}/>
+                </div>
             </div>
-        );
+        ];
     }
 }
 
@@ -152,6 +166,7 @@ function get_webdoc_root() {
     {
         root = document.createElement('div');
         root.id = 'webdoc_react_root';
+        root.className = 'fullscreen';
         document.body.append(root);
     }
     return root;

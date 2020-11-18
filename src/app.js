@@ -1,6 +1,8 @@
 import { CommandList, start_capture, stop_capture } from './recorder.js';
 import { display_ui, hide_ui } from './render.js';
 
+import './style.scss';
+
 // WebGL2 example code
 function draw_triangle(gl, canvas)
 {
