@@ -44,8 +44,8 @@ export function replay_commands(command_list, gl, limit=null)
 //  ({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})
 const CommandListComponent = ({commands, selected, select_command}) => {
     return [
-        <h2 className="title is-5">Command list</h2>,
-        <ol className="command-list is-flex-grow-1">
+        <h2 key="0" className="title is-5">Command list</h2>,
+        <ol key="1" className="command-list is-flex-grow-1">
             {commands.map((command, index) => (
                 <li
                     key={index}
@@ -60,13 +60,49 @@ const CommandListComponent = ({commands, selected, select_command}) => {
 };
 
 const CommandArguments = ({command}) => {
+    const prototypes = window.gl_functions_prototypes.get(command.name);
+    if (!prototypes) {
+        alert(`Unknown function ${command.name}.`);
+    }
+
+    if (prototypes.length > 1) {
+        alert(`Multiple prototypes for ${command.name}.`);
+    }
+
+    const prototype = prototypes[0];
+
+    let pretty_args = new Array();
+    for (const i_arg in command.args)
+    {
+        const arg = command.args[i_arg];
+        if (prototype.args[i_arg].type == "GLenum") {
+            pretty_args.push(window.gl_enum_value_to_name.get(arg));
+        }
+        else {
+            pretty_args.push(`${arg}`);
+        }
+
+    }
+
     return [
-        <h2 className="title is-5">Arguments</h2>,
-        <ul>
-            {command.args.map((arg, index) => (
-                <li key={index} className="is-size-7">{`${arg}`}</li>
-            ))}
-        </ul>
+        <div key="1" className="table-container">
+            <table className="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Arguments</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {pretty_args.map((arg, index) => (
+                        <tr key={index} className="is-size-7">
+                            <td>{`${prototype.args[index].name}`}</td>
+                            <td>{`${arg}`}</td>
+                        </tr>
+                    ))}
+                </tbody>
+          </table>
+        </div>
     ];
 }
 
@@ -132,7 +168,7 @@ class WebdocComponent extends React.Component {
         const {command_list} = this.props;
 
         return [
-            <header className="level">
+            <header key="0" className="level">
                 <div className="level-left">
                     <div className="level-item">
                         <h1 className="title is-5">
@@ -143,7 +179,7 @@ class WebdocComponent extends React.Component {
                     <p className="level-item"><a download="capture" href={`data:application/json,${JSON.stringify(command_list)}`}>Download capture</a></p>
                 </div>
             </header>,
-            <div className="columns is-flex-grow-1 m-0">
+            <div key="1" className="columns is-flex-grow-1 m-0">
                 <div className="column">
                     <CommandListComponent
                         commands={command_list.commands}
