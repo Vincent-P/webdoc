@@ -2,6 +2,7 @@
 export class CommandList
 {
     commands = new Array();
+    canvas_size = {x: 0, y: 0};
 
     add(fn, return_value, ...args)
     {
@@ -19,6 +20,9 @@ export class CommandList
 // Put a wrapper on every function of a WebGL context
 export function start_capture(gl, command_list)
 {
+    command_list.canvas_size.x = gl.canvas.width;
+    command_list.canvas_size.y = gl.canvas.height;
+
     for (let property_name in gl)
     {
         let property = gl[property_name];
