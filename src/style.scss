@@ -1,6 +1,10 @@
 @charset "utf-8";
 @import "~bulma/bulma";
 
+html {
+    overflow: hidden;
+}
+
 .selected {
     background-color: 		hsl(171, 100%, 96%);
 }
@@ -33,6 +37,22 @@
 
 .is-flex-basis-0 {
     flex-basis: 0px !important;
+}
+
+.is-flex-1 {
+    flex: 1 !important;
+
+    .is-flex-basis-0 {
+        flex-basis: 0px !important;
+    }
+}
+
+.is-flex-3 {
+    flex: 3 !important;
+
+    .is-flex-basis-0 {
+        flex-basis: 0px !important;
+    }
 }
 
 .overflow-auto {

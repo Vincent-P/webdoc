@@ -43,14 +43,14 @@ export function replay_commands(command_list, gl, limit=null)
 // Display a command list, clicking on a command selects it
 //  ({command.args.map((argument, index) => (`${index == 0 ? '' : ', '}${argument}`))})
 const CommandListComponent = ({commands, selected, select_command}) => {
-    return (<aside className="menu is-flex-grow-3 is-flex-basis-0 overflow-auto is-size-7">
+    return (<aside className="menu is-flex-basis-0 is-flex-1 overflow-auto is-size-7">
                 <ol key="1" className="menu-list">
                     {commands.map((command, index) => (
                         <li
                             key={index}
                             className="is-family-monospace"
                         >
-                            <a onClick={_ => select_command(index)} className={index == selected ? "is-active" : ""}>{command.original_function.name}</a>
+                            <a onClick={_ => select_command(index)} className={index == selected ? "is-active" : ""}>{command.original_function.name}()</a>
                         </li>
                     ))}
                 </ol>
@@ -84,7 +84,7 @@ const CommandArguments = ({command}) => {
     }
 
     return [
-        <div key="1" className="table-container is-flex-grow-1 is-flex-basis-0 overflow-auto">
+        <div key="1" className="table-container">
             <table className="table is-fullwidth is-narrow">
                 <thead>
                     <tr>
@@ -116,11 +116,14 @@ class CanvasComponent extends React.Component {
 
     componentDidMount() {
         const canvas = this.canvas_ref.current;
-        this.gl_context = canvas.getContext('webgl2', {preserveDrawingBuffer: false});
+        if (canvas)
+        {
+            this.gl_context = canvas.getContext('webgl2', {preserveDrawingBuffer: false});
 
-        // re-render once the gl context has been created
-        // because componentDidMount() gets called after render()
-        this.forceUpdate();
+            // re-render once the gl context has been created
+            // because componentDidMount() gets called after render()
+            this.forceUpdate();
+        }
     }
 
     componentWillUnmount() {
@@ -136,7 +139,7 @@ class CanvasComponent extends React.Component {
         }
 
         return (
-            <canvas ref={this.canvas_ref} className="replay-canvas" id={this.props.id} width={command_list.canvas_size.x} height={command_list.canvas_size.y}></canvas>
+            <canvas ref={this.canvas_ref} className="replay-canvas is-flex-1" id={this.props.id} width={command_list.canvas_size.x} height={command_list.canvas_size.y}></canvas>
         );
     }
 }
@@ -179,7 +182,7 @@ class WebdocComponent extends React.Component {
                     <p className="level-item"><a download="capture" href={`data:application/json,${JSON.stringify(command_list)}`}>Download capture</a></p>
                 </div>
             </header>,
-            <div key="1" className="columns is-fullheight is-flex-grow-1 m-0">
+            <div key="1" className="columns is-fullheight is-flex-1 m-0">
                 <div className="column">
                     <h2 key="0" className="title is-5">Command list</h2>
                     <CommandListComponent
@@ -188,7 +191,7 @@ class WebdocComponent extends React.Component {
                         select_command={this.select_command}/>
                     {this.state.selected ? <CommandArguments command={command_list.commands[this.state.selected]} /> : null}
                 </div>
-                <div className="column is-flex-grow-3">
+                <div className="column is-flex-3">
                     <h2 className="title is-5">Replay</h2>
                     <CanvasComponent id="webdoc_canvas" command_list={command_list} selected={this.state.selected}/>
                 </div>
