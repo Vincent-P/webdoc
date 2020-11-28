@@ -1,8 +1,12 @@
 {
     "name": "webdoc",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "description": "",
-    "private": true,
+    "main": "./dist/webdoc.js",
+    "files": [
+        "dist/webdoc.js",
+        "dist/webdoc.css"
+    ],
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "webpack",
@@ -34,7 +38,8 @@
         "style-loader": "^2.0.0",
         "webpack": "^5.5.1",
         "webpack-cli": "^4.2.0",
-        "webpack-dev-server": "^3.11.0"
+        "webpack-dev-server": "^3.11.0",
+        "webpack-merge": "^5.4.0"
     },
     "dependencies": {
         "react": "^17.0.1",

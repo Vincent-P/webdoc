@@ -1,9 +1,4 @@
-import { CommandList, start_capture, stop_capture } from './recorder.js';
-import { display_ui, hide_ui } from './render.js';
-import { parse } from 'webidl2';
-import { webgl1idl_string, webgl2idl_string } from './webgl2idl.js';
-
-import './style.scss';
+import { WebDoc } from './webdoc.js';
 
 // WebGL2 example code
 function draw_triangle(gl, canvas)
@@ -77,120 +72,6 @@ function draw_triangle(gl, canvas)
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 }
 
-/*
-  function inspector_draw(inspector)
-  {
-  const {canvas, ctx, source} = inspector;
-
-  ctx.save();
-
-  ctx.setTransform(1, 0, 0, 1, 0, 0, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.restore();
-
-  ctx.drawImage(source, 0, 0);
-  }
-
-  function inspector_wheel(inspector, event)
-  {
-  event.preventDefault();
-  const delta = -event.deltaY;
-
-  if (delta)
-  {
-  const pt = inspector.ctx.transform_point(inspector.mouse.x, inspector.mouse.y);
-  inspector.ctx.translate(pt.x, pt.y);
-  const factor = Math.pow(1.1, delta);
-  inspector.ctx.scale(factor, factor);
-  inspector.ctx.translate(-pt.x, -pt.y);
-
-  inspector_draw(inspector)
-  }
-  }
-
-  function inspector_mousedown(inspector, event)
-  {
-  event.preventDefault();
-
-  inspector.pressed = true;
-
-  inspector.start = inspector.ctx.transform_point(event.offsetX, event.offsetY);
-  }
-
-  function inspector_mouseup(inspector, event)
-  {
-  event.preventDefault();
-
-  inspector.pressed = false;
-  }
-
-  function inspector_mousemove(inspector, event)
-  {
-  event.preventDefault();
-
-  inspector.mouse = inspector.ctx.transform_point(event.offsetX, event.offsetY);
-
-  if (inspector.pressed)
-  {
-  const dx = inspector.mouse.x - inspector.start.x;
-  const dy = inspector.mouse.y - inspector.start.y;
-  inspector.ctx.translate(dx, dy);
-
-  inspector_draw(inspector);
-  }
-  }
-*/
-
-function add_enum_or_function(members)
-{
-    for (const member of members)
-    {
-        // enum
-        if (member.type == "const")
-        {
-            if (member.value.type != "number") {
-                alert("const that is not a number!");
-            }
-
-            if (window.gl_enum_value_to_name.has(member.name)) {
-                alert("duplicate enum");
-            }
-
-            window.gl_enum_value_to_name.set(parseInt(member.value.value), member.name);
-        }
-        // function
-        else if (member.type == "operation")
-        {
-            let prototype = {args: new Array()};
-            for (const arg of member.arguments)
-            {
-                if (!arg.idlType.idlType) {
-                    alert("no type for argument");
-                }
-                prototype.args.push({
-                    type: arg.idlType.idlType,
-                    name: arg.name,
-                    optional: arg.optional
-                });
-            }
-
-            let prototypes = null;
-            if (window.gl_functions_prototypes.has(member.name))
-            {
-                prototypes = window.gl_functions_prototypes.get(member.name);
-            }
-            else
-            {
-                prototypes = new Array();
-            }
-
-            prototypes.push(prototype);
-            window.gl_functions_prototypes.set(member.name, prototypes);
-        }
-    }
-}
-
 function main()
 {
     /// --- Setup
@@ -202,129 +83,16 @@ function main()
         return;
     }
 
-    /*
-      const inspector_canvas = document.querySelector('#webdoc_inspector_canvas');
-      const inspector = {
-      canvas: inspector_canvas,
-      ctx: inspector_canvas.getContext('2d'),
-      source: webdoc_canvas,
-      scale: 1.0,
-      old_scale: 1.0,
-      offset_x: 0,
-      offset_y: 0,
-      pan_x: 0,
-      pan_y: 0,
-      start: {x: 0, y: 0},
-      mouse: {x: 0, y: 0},
-      pressed: false,
-      };
-      track_transforms(inspector.ctx);
-      inspector.ctx.imageSmoothingEnabled = false; // disable interpolation when zooming
+    const webdoc = new WebDoc();
+    webdoc.init();
 
-      inspector_canvas.addEventListener('wheel', event => inspector_wheel(inspector, event));
-      inspector_canvas.addEventListener('mouseup', event => inspector_mouseup(inspector, event));
-      inspector_canvas.addEventListener('mousedown', event => inspector_mousedown(inspector, event));
-      inspector_canvas.addEventListener('mousemove', event => inspector_mousemove(inspector, event));
-
-      inspector_draw(inspector);
-    */
-    const webgl1_tree = parse(webgl1idl_string);
-    const webgl2_tree = parse(webgl2idl_string);
-
-    window.gl_enum_value_to_name = new Map();
-    window.gl_functions_prototypes = new Map();
-
-    for (const node of webgl1_tree) {
-        if (node.name == "WebGLRenderingContextBase") {
-            add_enum_or_function(node.members);
-        }
-    }
-
-    for (const node of webgl2_tree) {
-        if (node.name == "WebGL2RenderingContextBase" || node.name == "WebGL2RenderingContextOverloads") {
-            add_enum_or_function(node.members);
-        }
-    }
-
-    console.log(`Found ${window.gl_enum_value_to_name.size} enums.`);
-    console.log(`Found ${window.gl_functions_prototypes.size} functions.`);
-
-    let command_list = new CommandList();
-    start_capture(client_gl, command_list);
+    webdoc.start_capture(client_gl);
 
     draw_triangle(client_gl, client_canvas);
 
-    stop_capture(client_gl);
-    display_ui(command_list);
+    webdoc.stop_capture(client_gl);
+
+    webdoc.display_ui();
 }
-
-
-// Adds ctx.getTransform() - returns an SVGMatrix
-// Adds ctx.transform_point(x,y) - returns an SVGPoint
-/*
-  function track_transforms(ctx)
-  {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
-  let xform = svg.createSVGMatrix();
-
-  ctx.getTransform = function() { return xform; };
-
-  const savedTransforms = [];
-  const save = ctx.save;
-  ctx.save = _ =>  {
-  savedTransforms.push(xform.translate(0,0));
-  return save.call(ctx);
-  };
-
-  const restore = ctx.restore;
-  ctx.restore = _ => {
-  xform = savedTransforms.pop();
-  return restore.call(ctx);
-  };
-
-  const scale = ctx.scale;
-  ctx.scale = (sx,sy) => {
-  xform = xform.scaleNonUniform(sx,sy);
-  return scale.call(ctx, sx, sy);
-  };
-
-  const rotate = ctx.rotate;
-  ctx.rotate = (radians) => {
-  xform = xform.rotate(radians*180/Math.PI);
-  return rotate.call(ctx, radians);
-  };
-
-  const translate = ctx.translate;
-  ctx.translate = (dx,dy) => {
-  xform = xform.translate(dx,dy);
-  return translate.call(ctx,dx,dy);
-  };
-
-  const transform = ctx.transform;
-  ctx.transform = (a, b, c, d, e, f) => {
-  const m2 = svg.createSVGMatrix();
-  m2.a=a; m2.b=b; m2.c=c; m2.d=d; m2.e=e; m2.f=f;
-  xform = xform.multiply(m2);
-  return transform.call(ctx, a, b, c, d, e, f);
-  };
-
-  const setTransform = ctx.setTransform;
-  ctx.setTransform = (a, b, c, d, e, f) => {
-  xform.a = a;
-  xform.b = b;
-  xform.c = c;
-  xform.d = d;
-  xform.e = e;
-  xform.f = f;
-  return setTransform.call(ctx, a, b, c, d, e, f);
-  };
-
-  const pt  = svg.createSVGPoint();
-  ctx.transform_point = (x,y) => {
-  pt.x=x; pt.y=y;
-  return pt.matrixTransform(xform.inverse());
-  }
-  }
-*/
 
 window.onload = main;

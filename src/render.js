@@ -214,7 +214,11 @@ function get_webdoc_root() {
 
 export function display_ui(command_list) {
     document.body.className = "no-scroll";
-    ReactDOM.render(<WebdocComponent command_list={command_list} />, get_webdoc_root());
+
+    const root = get_webdoc_root();
+    console.log("Setting body to no-scroll", document.body.className, ReactDOM, root);
+
+    ReactDOM.render(<WebdocComponent command_list={command_list} />, root);
 };
 
 export function hide_ui() {
