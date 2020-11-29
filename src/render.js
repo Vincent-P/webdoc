@@ -3,6 +3,31 @@ import ReactDOM from "react-dom";
 
 import 'bulma/css/bulma.css'
 
+const WebGLObjectTypes = [
+    'WebGLRenderingContext',
+    'WebGL2RenderingContext',
+    'WebGLActiveInfo',
+    'WebGLBuffer',
+    'WebGLContextEvent',
+    'WebGLFramebuffer',
+    'WebGLProgram',
+    'WebGLQuery',
+    'WebGLRenderbuffer',
+    'WebGLSampler',
+    'WebGLShader',
+    'WebGLShaderPrecisionFormat',
+    'WebGLSync',
+    'WebGLTexture',
+    'WebGLTransformFeedback',
+    'WebGLUniformLocation',
+    'WebGLVertexArrayObject'
+];
+
+function get_js_type(object)
+{
+    return object != null && object.constructor != null ? object.constructor.name : typeof object;
+}
+
 // Replay the calls from a command list
 export function replay_commands(command_list, gl, limit=null)
 {
@@ -23,12 +48,29 @@ export function replay_commands(command_list, gl, limit=null)
         const original_returned_value = command.return_value;
         let args = [...command.args];
 
-        // replace variables
+        // replace arguments from original commands with new values from the replay context
         for (let i_argument in args)
         {
-            if (variables.has(args[i_argument]))
+            const arg_type = get_js_type(args[i_argument]);
+
+            if (WebGLObjectTypes.includes(arg_type))
             {
-                args[i_argument] = variables.get(args[i_argument]);
+                if (!variables.has(args[i_argument]))
+                {
+                    // Causes WebGL warnings: if a resource is created outside of start/stop_capture,
+                    // it isn't recorded in the variables map here.
+                    // Potential fix:
+                    // When recording commands, maintain a map of variables like in replay_commands,
+                    // if using an argument that wasn't recorded like here, use getParameter and other stuff
+                    // to retrieve data about the resource.
+                    // If getParameter and friends isn't enough, maybe we will have to track every resource
+                    // before start_capture...
+                    console.log(`[${i_command}] ${command.name}: argument was not recorded`, args[i_argument]);
+                }
+                else
+                {
+                    args[i_argument] = variables.get(args[i_argument]);
+                }
             }
         }
 
